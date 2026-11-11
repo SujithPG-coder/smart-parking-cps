@@ -1,0 +1,7 @@
+{
+  "slots": [
+    { "id": 1, "occupied": true,  "reserved": false },
+    { "id": 2, "occupied": true,  "reserved": false },
+    { "id": 3, "occupied": false, "reserved": true  }
+  ]
+}

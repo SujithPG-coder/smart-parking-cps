@@ -1,0 +1,16 @@
+# Build outputs
+build/
+Debug/
+Release/
+*.elf
+*.bin
+*.hex
+*.map
+# Python
+__pycache__/
+# Secrets
+secrets.h
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/

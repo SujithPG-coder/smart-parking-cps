@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Parking System · Dashboard</title>
+<meta name="description" content="Web dashboard for a CPS-based smart parking system: real-time slot status and reservations.">
+<style>
+  :root {
+    --bg: #070d1a; --panel: #0e1a2f; --line: #1e3a5f; --text: #e2e8f0; --muted: #94a3b8;
+    --cyan: #22d3ee; --free: #34d399; --res: #fbbf24; --occ: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 80% -10%, #12345a 0%, transparent 60%), var(--bg);
+    color: var(--text); min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 48px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: .3px; }
+  h1 span { color: var(--cyan); }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .demo {
+    margin-top: 18px; padding: 10px 14px; border: 1px solid #3b3313; background: #1c1808;
+    color: #fde68a; border-radius: 10px; font-size: 13px; line-height: 1.5;
+  }
+  .live { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted);
+          background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; border-radius: 999px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--free); box-shadow: 0 0 10px var(--free);
+         animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35 } }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 26px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .stat .k { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; }
+  .stat .v { font-size: 34px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+  h2 { font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.4px; margin: 34px 0 14px; }
+  .lot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .slot {
+    position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px; overflow: hidden; transition: border-color .25s, transform .25s;
+  }
+  .slot:hover { transform: translateY(-2px); }
+  .slot::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--c); }
+  .slot.free { --c: var(--free); } .slot.reserved { --c: var(--res); } .slot.occupied { --c: var(--occ); }
+  .slot .top { display: flex; justify-content: space-between; align-items: center; }
+  .slot .name { font-weight: 700; font-size: 18px; }
+  .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+           color: #0b1220; background: var(--c); }
+  .bay {
+    margin: 16px 0; height: 120px; border: 2px dashed #2a4a74; border-radius: 10px;
+    display: grid; place-items: center; position: relative;
+  }
+  .led { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; border-radius: 50%;
+         background: var(--c); box-shadow: 0 0 12px var(--c); }
+  .car { width: 92px; transition: opacity .35s, transform .35s; }
+  .slot:not(.occupied) .car { opacity: 0; transform: translateY(18px); }
+  .label { font-size: 13px; color: var(--muted); }
+  .btns { display: flex; gap: 8px; margin-top: 14px; }
+  button {
+    flex: 1; font: inherit; font-size: 13px; font-weight: 600; padding: 9px 10px; border-radius: 10px;
+    border: 1px solid var(--line); background: #10233d; color: var(--text); cursor: pointer;
+    transition: background .2s, border-color .2s;
+  }
+  button:hover:not(:disabled) { border-color: var(--cyan); background: #12304f; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+
+  .legend { display: flex; gap: 18px; justify-content: center; margin-top: 22px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+  .grid2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .log { font-family: "Fira Code", Consolas, monospace; font-size: 12.5px; max-height: 210px; overflow: auto; line-height: 1.7; }
+  .log .t { color: #64748b; } .log .g { color: var(--free); } .log .y { color: var(--res); } .log .r { color: var(--occ); }
+  pre { font-family: "Fira Code", Consolas, monospace; font-size: 12.5px; color: #bae6fd; white-space: pre-wrap; line-height: 1.6; }
+  .api { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .api code { color: var(--cyan); background: #0b1628; padding: 2px 6px; border-radius: 6px; }
+
+  footer { margin-top: 36px; text-align: center; color: #64748b; font-size: 13px; }
+  footer a { color: var(--cyan); text-decoration: none; }
+  @media (max-width: 760px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .lot, .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Smart Parking <span>System</span></h1>
+      <p class="sub">Cyber-Physical Systems · real-time slot monitoring &amp; reservation</p>
+    </div>
+    <div class="live"><span class="dot"></span><span id="sync">Syncing…</span></div>
+  </header>
+
+  <div class="demo">
+    <b>Demo mode.</b> This page runs on GitHub Pages and uses simulated data, so it is not connected to the parking hardware.
+    Use <b>Car arrives / leaves</b> to act as the IR sensors and <b>Reserve</b> to book a slot, exactly as the ESP32 and the cloud dashboard did in the prototype.
+  </div>
+
+  <section class="stats">
+    <div class="stat"><div class="k">Total slots</div><div class="v" id="total">3</div></div>
+    <div class="stat"><div class="k">Available</div><div class="v" id="free" style="color:var(--free)">0</div></div>
+    <div class="stat"><div class="k">Reserved</div><div class="v" id="res" style="color:var(--res)">0</div></div>
+    <div class="stat"><div class="k">Occupied</div><div class="v" id="occ" style="color:var(--occ)">0</div></div>
+  </section>
+
+  <h2>Parking lot</h2>
+  <section class="lot" id="lot"></section>
+
+  <div class="legend">
+    <span><i style="background:var(--free)"></i>Available (green LED)</span>
+    <span><i style="background:var(--res)"></i>Reserved (yellow LED)</span>
+    <span><i style="background:var(--occ)"></i>Occupied (red LED)</span>
+  </div>
+
+  <h2>Activity &amp; API</h2>
+  <section class="grid2">
+    <div class="panel"><div class="log" id="log"></div></div>
+    <div class="panel">
+      <div class="api">
+        The ESP32 talks to the dashboard over Wi-Fi:<br>
+        <code>GET /api/slots</code> pulls reservations every 5&nbsp;s<br>
+        <code>POST /api/update-slot</code> pushes occupancy changes<br><br>
+        Current <code>GET /api/slots</code> response:
+      </div>
+      <pre id="json"></pre>
+    </div>
+  </section>
+
+  <footer>
+    Built by Sujith Krishna P G ·
+    <a href="https://github.com/SujithPG-coder/smart-parking-cps">View source on GitHub</a>
+  </footer>
+</div>
+
+<script>
+  const CAR_SVG = `<svg class="car" viewBox="0 0 120 60" aria-hidden="true">
+    <rect x="8" y="22" width="104" height="24" rx="8" fill="#f97316"/>
+    <path d="M30 22 L42 8 H78 L92 22 Z" fill="#fb923c"/>
+    <path d="M45 11 H58 V21 H37 Z M62 11 H76 L86 21 H62 Z" fill="#bae6fd"/>
+    <circle cx="32" cy="48" r="9" fill="#111827"/><circle cx="32" cy="48" r="4" fill="#9ca3af"/>
+    <circle cx="88" cy="48" r="9" fill="#111827"/><circle cx="88" cy="48" r="4" fill="#9ca3af"/>
+    <rect x="104" y="28" width="7" height="5" rx="2" fill="#fde68a"/></svg>`;
+
+  let slots = [
+    { id: 1, occupied: true,  reserved: false },
+    { id: 2, occupied: true,  reserved: false },
+    { id: 3, occupied: false, reserved: true  }
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const stateOf = (s) => s.occupied ? "occupied" : s.reserved ? "reserved" : "free";
+  const LABEL = { free: "Available", reserved: "Reserved", occupied: "Occupied" };
+
+  function log(msg, cls) {
+    const t = new Date().toLocaleTimeString([], { hour12: false });
+    const line = document.createElement("div");
+    line.innerHTML = `<span class="t">[${t}]</span> <span class="${cls}">${msg}</span>`;
+    $("log").prepend(line);
+  }
+
+  function render() {
+    $("lot").innerHTML = slots.map((s) => {
+      const st = stateOf(s);
+      return `<article class="slot ${st}">
+        <div class="top"><div class="name">Slot ${s.id}</div><span class="badge">${LABEL[st]}</span></div>
+        <div class="bay"><span class="led"></span>${CAR_SVG}</div>
+        <div class="label">${st === "occupied" ? "Vehicle detected by IR sensor"
+                            : st === "reserved" ? "Held for a booked driver"
+                            : "Ready for the next vehicle"}</div>
+        <div class="btns">
+          <button data-act="car" data-id="${s.id}">${s.occupied ? "Car leaves" : "Car arrives"}</button>
+          <button data-act="res" data-id="${s.id}" ${s.occupied ? "disabled" : ""}>${s.reserved ? "Cancel" : "Reserve"}</button>
+        </div>
+      </article>`;
+    }).join("");
+
+    const count = (st) => slots.filter((s) => stateOf(s) === st).length;
+    $("free").textContent = count("free");
+    $("res").textContent = count("reserved");
+    $("occ").textContent = count("occupied");
+    $("json").textContent = JSON.stringify({ slots }, null, 2);
+  }
+
+  $("lot").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const s = slots.find((x) => x.id === Number(b.dataset.id));
+    if (b.dataset.act === "car") {
+      s.occupied = !s.occupied;
+      if (s.occupied) s.reserved = false;          // a parked car clears its reservation
+      log(`POST /api/update-slot {"id":${s.id},"occupied":${s.occupied}}`, s.occupied ? "r" : "g");
+    } else {
+      s.reserved = !s.reserved;
+      log(`Slot ${s.id} ${s.reserved ? "reserved" : "reservation cancelled"} from dashboard`, s.reserved ? "y" : "g");
+    }
+    render();
+  });
+
+  function tick() {
+    $("sync").textContent = "Last sync " + new Date().toLocaleTimeString([], { hour12: false });
+  }
+
+  async function init() {
+    try {
+      const r = await fetch("api/slots.json", { cache: "no-store" });
+      if (r.ok) {
+        const d = await r.json();
+        if (Array.isArray(d.slots) && d.slots.length) slots = d.slots;
+      }
+    } catch (_) { /* opened offline: keep built-in demo data */ }
+    render();
+    log("GET /api/slots → 200 OK (2 occupied, 1 reserved)", "g");
+    tick();
+    setInterval(tick, 5000);
+  }
+  init();
+</script>
+</body>
+</html>
